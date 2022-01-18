@@ -1,9 +1,8 @@
-import javafx.application.Application;
+
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
@@ -64,13 +63,19 @@ public class Main {
 
             stmt = c.createStatement();
             String sql = "CREATE TABLE IF NOT EXISTS BOOKS " +
-                    "(NAME           TEXT, " +
-                    "ISBN            TEXT)";
+                    "(ID INT PRIMARY KEY    NOT NULL, " +
+                    "NAME           TEXT    NOT NULL, " +
+                    "ISBN           TEXT, " +
+                    "LOCATION       TEXT    NOT NULL, "+
+                    "STU_NAME       TEXT, "+
+                    "STU_ID         TEXT, "+
+                    "IS_OUT         BOOL    NOT NULL, "+
+                    "DATE_OUT       TEXT)";
             stmt.executeUpdate(sql);
             stmt.close();
             c.close();
         } catch ( Exception e ) {
-            System.err.println( e.getClass().getName() + ": a" + e.getMessage() );
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);
         }
 
@@ -99,7 +104,10 @@ public class Main {
                     ResultSet rs = stmt.executeQuery( "SELECT * FROM BOOKS;" );
                     myWriter.write("Books in the Catalog\n");
                     while ( rs.next() ) {
-                        myWriter.write("Book Name: "+rs.getString("NAME")+"\nISBN: "+rs.getString("ISBN")+"\n\n\n");
+                        myWriter.write("Book Name: "+rs.getString("NAME")+"\nISBN: "+rs.getString("ISBN")+"\nLocation: "+
+                                rs.getString("LOCATION")+"\nChecked out: "+rs.getString("IS_OUT")+
+                                "\nStudent Name: "+rs.getString("STU_NAME")+"\nStudent ID: "+rs.getString("STU_ID")+
+                                "\nDate Checked Out: "+rs.getString("DATE_OUT"));
                     }
                     myWriter.close();
                     rs.close();
@@ -118,13 +126,19 @@ public class Main {
                     System.out.print("Whats the name of the book: ");
                     Scanner name = new Scanner(System.in);
                     String bname = name.nextLine();
-                    System.out.print("Whats the ISBN of the book: ");
+                    System.out.print("Whats the ISBN of the book, press enter if you don't want to type it: ");
                     Scanner isbn = new Scanner(System.in);
-                    String bisbn = name.nextLine();
+                    String bisbn = isbn.nextLine();
+                    System.out.print("Who has the book: ");
+                    Scanner locate = new Scanner(System.in);
+                    String blocation = locate.nextLine();
+                    System.out.print("Book id, ensure it is unique: ");
+                    Scanner id = new Scanner(System.in);
+                    String bid = id.nextLine();
                     stmt = c.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT 1 FROM BOOKS WHERE NAME = '["+bname+"]' AND ISBN = '["+bisbn+"]'");
                     if (!rs.next()) {
-                        String sql = "INSERT INTO BOOKS (NAME,ISBN) VALUES ('["+bname+"]', '["+bisbn+"]' )";
+                        String sql = "INSERT INTO BOOKS (ID,NAME,ISBN,LOCATION,IS_OUT) VALUES ('["+bname+"]', '["+bisbn+"]', '["+blocation+"]', FALSE)";
                         stmt.executeUpdate(sql);
                         System.out.printf("Successfully added %s of ISBN %s to database\nPress enter to continue\n",bname,bisbn);
                         String bla = select.nextLine();
@@ -152,17 +166,18 @@ public class Main {
                     Class.forName("org.sqlite.JDBC");
                     c = DriverManager.getConnection("jdbc:sqlite:books.db");
                     c.setAutoCommit(false);
-                    System.out.print("Whats the name of the book you wish to remove: ");
-                    Scanner name = new Scanner(System.in);
-                    String bname = name.nextLine();
+                    System.out.print("Whats the id of the book you wish to remove, you can find this info in the catalog: ");
+                    Scanner id = new Scanner(System.in);
+                    String bid = id.nextLine();
                     stmt = c.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT 1 FROM BOOKS WHERE NAME = '["+bname+"]'");
+                    ResultSet rs = stmt.executeQuery("SELECT ID FROM BOOKS WHERE ID = '["+bid+"]'");
                     if (rs.next()){
-                        String sql = "DELETE from BOOKS where NAME='["+bname+"]'";
+                        String sql = "DELETE from BOOKS where ID='["+bid+"]'";
                         stmt.executeUpdate(sql);
-                        System.out.printf("Successfully deleted book %s from the database\nPress enter to continue\n",bname);
+                        System.out.printf("Successfully deleted book %s from the database\nPress enter to continue\n",bid);
                         String bla = select.nextLine();
                     }
+
                     stmt.close();
                     rs.close();
                     c.commit();
@@ -183,13 +198,12 @@ public class Main {
                     Scanner name = new Scanner(System.in);
                     String bname = name.nextLine();
                     stmt = c.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT NAME,ISBN FROM BOOKS WHERE NAME = '["+bname+"]'");
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM BOOKS WHERE NAME = '["+bname+"]'");
                     while (rs.next()) {
-                        String rname = rs.getString("NAME");
-                        String risbn = rs.getString("ISBN");
-
-                        System.out.printf("Book Exists in the database:\nName:%s\nISBN:%s\nPress enter to continue",rname,risbn);
-                        String bla = select.nextLine();
+                        System.out.println("Book Name: "+rs.getString("NAME")+"\nISBN: "+rs.getString("ISBN")+"\nLocation: "+
+                                rs.getString("LOCATION")+"\nChecked out: "+rs.getString("IS_OUT")+
+                                "\nStudent Name: "+rs.getString("STU_NAME")+"\nStudent ID: "+rs.getString("STU_ID")+
+                                "\nDate Checked Out: "+rs.getString("DATE_OUT"));
                     }
                     stmt.close();
                     rs.close();
@@ -234,19 +248,24 @@ public class Main {
 
         try {
             Class.forName("org.sqlite.JDBC");
-            c = DriverManager.getConnection("jdbc:sqlite:status.db");
+            c = DriverManager.getConnection("jdbc:sqlite:books.db");
 
 
             stmt = c.createStatement();
-            String sql = "CREATE TABLE IF NOT EXISTS STATUS " +
-                    "(FIRST_NAME           TEXT, " +
-                    "LAST_NAME            TEXT," +
-                    "BOOK_NAME            TEXT)";
+            String sql = "CREATE TABLE IF NOT EXISTS BOOKS " +
+                    "(ID INT PRIMARY KEY    NOT NULL, " +
+                    "NAME           TEXT    NOT NULL, " +
+                    "ISBN           TEXT, " +
+                    "LOCATION       TEXT    NOT NULL, "+
+                    "STU_NAME       TEXT, "+
+                    "STU_ID         TEXT, "+
+                    "IS_OUT         BOOL    NOT NULL, "+
+                    "DATE_OUT       TEXT)";
             stmt.executeUpdate(sql);
             stmt.close();
             c.close();
         } catch ( Exception e ) {
-            System.err.println( e.getClass().getName() + ": a" + e.getMessage() );
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);
         }
 
@@ -268,13 +287,13 @@ public class Main {
                     }
                     FileWriter myWriter = new FileWriter(report.getName());
                     Class.forName("org.sqlite.JDBC");
-                    c = DriverManager.getConnection("jdbc:sqlite:status.db");
+                    c = DriverManager.getConnection("jdbc:sqlite:books.db");
                     c.setAutoCommit(false);
                     stmt = c.createStatement();
-                    ResultSet rs = stmt.executeQuery( "SELECT * FROM STATUS;" );
+                    ResultSet rs = stmt.executeQuery( "SELECT * FROM BOOKS WHERE IS_OUT = TRUE;" );
                     myWriter.write("Students holding books\n");
                     while ( rs.next() ) {
-                        myWriter.write("Student name f/l: "+rs.getString("FIRST_NAME")+", "+rs.getString("LAST_NAME")+"\nBook: "+rs.getString("BOOK_NAME")+"\n\n\n");
+                        myWriter.write("Student name f/l: "+rs.getString("STU_NAME")+"\nBook: "+rs.getString("BOOK_NAME")+"\nDate Checked out\n\n");
                     }
                     myWriter.close();
                     rs.close();
